@@ -1,0 +1,45 @@
+# Reduce Docker build context — exclude large and dev-only files
+
+# VCS and editor
+.git
+.git/**
+.gitignore
+.vscode/
+*.code-workspace
+
+# Python caches and venvs
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Local environment and OS cruft
+.env
+.env.*
+*.DS_Store
+Thumbs.db
+
+# Data: historical, logs, training artifacts (mounted at runtime via volumes)
+src/data/historical/**
+src/data/training_logs/**
+src/data/logs/**
+src/data/**/*.parquet
+src/data/**/*.csv
+
+# Trained model binaries (mounted via volumes if needed)
+src/models/*.pkl
+src/models/**/*.pkl
+
+# Notebooks and checkpoints
+notebooks/
+**/.ipynb_checkpoints/
+
+# Node/JS caches (if any)
+node_modules/
+package-lock.json
+yarn.lock
+

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entrenamientos</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <style> body { padding: 20px; } .mono{font-family:monospace;font-size:0.85rem;} </style>
+</head>
+<body>
+  <section class="section">
+    <h1 class="title">Zona de Entrenamiento</h1>
+    <p class="subtitle">Lanza entrenamientos y guarda resultados</p>
+    <a class="button is-small" href="/">← Volver al dashboard</a>
+  </section>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="section">
+      {% for category, message in messages %}
+        <div class="notification is-{{ 'danger' if category=='danger' else 'info' }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% endwith %}
+
+  <section class="section">
+    <form method="post">
+      <div class="box" style="margin-bottom:16px;">
+        <div class="field is-grouped is-align-items-flex-end">
+          <div class="control is-expanded">
+            <label class="label">Cargar entrenamiento previo</label>
+            <div class="select is-fullwidth">
+              <select id="prefill-run">
+                <option value="">Selecciona un run reciente…</option>
+                {% for r in runs %}
+                  <option value="{{ loop.index0 }}"
+                          data-trainer="{{ r.trainer }}"
+                          data-timeframe="{{ r.timeframe }}"
+                          data-format="{{ r.format }}"
+                          data-tz="{{ r.tz }}"
+                          data-symbols="{{ r.symbols }}"
+                          data-base="{{ r.base }}"
+                          data-target="{{ r.target }}"
+                          data-start_date="{{ r.start_date }}"
+                          data-end_date="{{ r.end_date }}"
+                          data-cmd="{{ r.cmd | e }}">
+                    {# Formatea timestamp YYYYMMDDThhmmssZ -> YYYY-MM-DD hh:mm:ss #}
+                    {{ r.timestamp_local or r.timestamp }} — {{ r.trainer }}{% if r.best_score %} — score {{ r.best_score }}{% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="control">
+            <button class="button is-info" type="button" onclick="prefillFromRun()">Rellenar</button>
+          </div>
+        </div>
+        <p class="help">Rellena los campos del formulario con los parámetros de un entrenamiento anterior (se pueden ajustar después).</p>
+      </div>
+      <div class="columns">
+        <div class="column">
+          <div class="field">
+            <label class="label">Entrenador</label>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select name="trainer">
+                  {% for t in trainers %}
+                    <option value="{{t.key}}">{{t.key}} — {{t.desc}}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Símbolos (para latin/latin_pattern)</label>
+            <div class="control"><input class="input" type="text" name="symbols" placeholder="BTCUSDC,ETHUSDC,LTCUSDC"></div>
+          </div>
+          <div class="field">
+            <label class="label">Base / Target (para cross_pattern)</label>
+            <div class="control"><input class="input" type="text" name="base" placeholder="BTCUSDC"></div>
+            <div class="control" style="margin-top:6px;"><input class="input" type="text" name="target" placeholder="LTCUSDC"></div>
+          </div>
+          <div class="field">
+            <label class="label">TZ</label>
+            <div class="control"><input class="input" type="text" name="tz" placeholder="Europe/Madrid"></div>
+          </div>
+          <div class="field is-horizontal">
+            <div class="field-body">
+              <div class="field">
+                <label class="label">Timeframe</label>
+                <div class="control"><input class="input" type="text" name="timeframe" value="1h"></div>
+              </div>
+              <div class="field">
+                <label class="label">Formato</label>
+                <div class="select is-fullwidth">
+                  <select name="format">
+                    <option value="parquet" selected>parquet</option>
+                    <option value="csv">csv</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="field is-horizontal">
+            <div class="field-body">
+              <div class="field">
+                <label class="label">Desde (YYYY-MM-DD)</label>
+                <div class="control"><input class="input" type="text" name="start_date" placeholder="2024-01-01"></div>
+              </div>
+              <div class="field">
+                <label class="label">Hasta (YYYY-MM-DD)</label>
+                <div class="control"><input class="input" type="text" name="end_date" placeholder="2025-09-01"></div>
+              </div>
+            </div>
+          </div>
+          <hr>
+          <h3 class="title is-6">Parámetros específicos</h3>
+          <div id="trainer-fields">
+            <!-- Latin (ruptura) -->
+            <div class="box" data-trainer="latin_training" style="display:none;">
+              <p class="subtitle is-6">Latin (ruptura)</p>
+              <div class="field is-horizontal"><div class="field-body">
+                <div class="field"><label class="label">Horizon</label><input class="input" type="number" name="latin_horizon" placeholder="4"></div>
+                <div class="field"><label class="label">ATR Target</label><input class="input" type="number" step="0.01" name="latin_atr_target" placeholder="1.2"></div>
+                <div class="field"><label class="label">ATR Stop</label><input class="input" type="number" step="0.01" name="latin_atr_stop" placeholder="0.8"></div>
+              </div></div>
+              <div class="field is-horizontal"><div class="field-body">
+                <div class="field"><label class="label">Morning start</label><input class="input" type="text" name="latin_morning_start" placeholder="00:00"></div>
+                <div class="field"><label class="label">Morning end</label><input class="input" type="text" name="latin_morning_end" placeholder="13:00"></div>
+              </div></div>
+              <div class="field is-horizontal"><div class="field-body">
+                <div class="field"><label class="label">Session start</label><input class="input" type="text" name="latin_session_start" placeholder="13:00"></div>
+                <div class="field"><label class="label">Session end</label><input class="input" type="text" name="latin_session_end" placeholder=""></div>
+              </div></div>
+              <div class="field is-horizontal"><div class="field-body">
+                <div class="field"><label class="label">Models</label><input class="input" type="text" name="latin_models" placeholder="lr,xgb,lgbm"></div>
+                <div class="field"><label class="label">Metric</label><input class="input" type="text" name="latin_metric" placeholder="accuracy|f1"></div>
+              </div></div>
+            </div>
+
+            <!-- Latin pattern -->
+            <div class="box" data-trainer="latin_pattern_training" style="display:none;">
+              <p class="subtitle is-6">Latin pattern</p>
+              <div class="field is-horizontal"><div class="field-body">
+                <div class="field"><label class="label">Morning start</label><input class="input" type="text" name="lp_morning_start" placeholder="07:30"></div>
+                <div class="field"><label class="label">Morning end</label><input class="input" type="text" name="lp_morning_end" placeholder="10:00"></div>
+              </div></div>
+              <div class="field is-horizontal"><div class="field-body">
+                <div class="field"><label class="label">Midday start</label><input class="input" type="text" name="lp_midday_start" placeholder="10:00"></div>
+                <div class="field"><label class="label">Midday end</label><input class="input" type="text" name="lp_midday_end" placeholder="15:00"></div>
+              </div></div>
+              <div class="field is-horizontal"><div class="field-body">
+                <div class="field"><label class="label">Afternoon start</label><input class="input" type="text" name="lp_afternoon_start" placeholder="15:00"></div>
+                <div class="field"><label class="label">Afternoon end</label><input class="input" type="text" name="lp_afternoon_end" placeholder="17:30"></div>
+              </div></div>
+              <div class="field is-horizontal"><div class="field-body">
+                <div class="field"><label class="label">Models</label><input class="input" type="text" name="lp_models" placeholder="lr,xgb,lgbm"></div>
+                <div class="field"><label class="label">Report metric</label><input class="input" type="text" name="lp_metric" placeholder="accuracy|f1"></div>
+              </div></div>
+              <div class="field is-horizontal"><div class="field-body">
+                <div class="field"><label class="label">Threshold mode</label><input class="input" type="text" name="lp_threshold_mode" placeholder="f1_pos|f1_macro|accuracy|balanced_accuracy|youden"></div>
+                <div class="field"><label class="label">Split by day</label>
+                  <div class="control"><label class="checkbox"><input type="checkbox" name="lp_split_by_day"> Sí</label></div>
+                </div>
+              </div></div>
+            </div>
+
+            <!-- Cross pattern BTC->LTC -->
+            <div class="box" data-trainer="cross_pattern_training" style="display:none;">
+              <p class="subtitle is-6">Cross pattern BTC→LTC</p>
+              <div class="field is-horizontal"><div class="field-body">
+                <div class="field"><label class="label">Morning start</label><input class="input" type="text" name="cp_morning_start" placeholder="07:30"></div>
+                <div class="field"><label class="label">Morning end</label><input class="input" type="text" name="cp_morning_end" placeholder="10:00"></div>
+              </div></div>
+              <div class="field is-horizontal"><div class="field-body">
+                <div class="field"><label class="label">Afternoon start</label><input class="input" type="text" name="cp_afternoon_start" placeholder="15:00"></div>
+                <div class="field"><label class="label">Afternoon end</label><input class="input" type="text" name="cp_afternoon_end" placeholder="17:30"></div>
+              </div></div>
+              <div class="field is-horizontal"><div class="field-body">
+                <div class="field"><label class="label">Models</label><input class="input" type="text" name="cp_models" placeholder="lr,xgb,lgbm"></div>
+                <div class="field"><label class="label">Report metric</label><input class="input" type="text" name="cp_metric" placeholder="accuracy|f1"></div>
+              </div></div>
+              <div class="field is-horizontal"><div class="field-body">
+                <div class="field"><label class="label">Threshold mode</label><input class="input" type="text" name="cp_threshold_mode" placeholder="balanced_accuracy"></div>
+                <div class="field"><label class="label">Split by day</label>
+                  <div class="control"><label class="checkbox"><input type="checkbox" name="cp_split_by_day"> Sí</label></div>
+                </div>
+              </div></div>
+            </div>
+
+            <!-- Walkforward -->
+            <div class="box" data-trainer="walkforward_training" style="display:none;">
+              <p class="subtitle is-6">Walk-forward</p>
+              <div class="field is-horizontal"><div class="field-body">
+                <div class="field"><label class="label">Models</label><input class="input" type="text" name="wf_models" placeholder="lr,xgb,lgbm"></div>
+                <div class="field"><label class="label">Folds</label><input class="input" type="number" name="wf_folds" placeholder="5"></div>
+                <div class="field"><label class="label">Horizon</label><input class="input" type="number" name="wf_horizon" placeholder="1"></div>
+              </div></div>
+              <div class="field"><label class="label">Log CSV</label><input class="input" type="text" name="wf_log_results" placeholder="src/data/training_logs/wf_results.csv"></div>
+            </div>
+
+            <!-- Pairs -->
+            <div class="box" data-trainer="pairs_training" style="display:none;">
+              <p class="subtitle is-6">Pairs (convergencia)</p>
+              <div class="field is-horizontal"><div class="field-body">
+                <div class="field"><label class="label">Symbols (A,B) <span class="req" data-trainers="pairs_training">*</span></label><input class="input" type="text" name="pairs_symbols" placeholder="BTCUSDC,LTCUSDC"></div>
+                <div class="field"><label class="label">Window</label><input class="input" type="number" name="pairs_window" placeholder="50"></div>
+                <div class="field"><label class="label">Horizon</label><input class="input" type="number" name="pairs_horizon" placeholder="1"></div>
+              </div></div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label">Argumentos extra (opcional)</label>
+            <div class="control">
+              <input class="input" type="text" name="extra_args" placeholder="--flag valor ...">
+            </div>
+          </div>
+          <div class="field">
+            <div class="control">
+              <button class="button is-primary" type="submit">Lanzar entrenamiento</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <section class="section">
+    <h2 class="title is-5">Historial de entrenamientos</h2>
+    {% if runs and runs|length>0 %}
+    <table class="table is-fullwidth is-striped is-hoverable">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Entrenador</th>
+          <th>RC</th>
+          <th>Parámetros</th>
+          <th>Best</th>
+          <th>Score</th>
+          <th>Positivos</th>
+          <th>LR</th>
+          <th>XGB</th>
+          <th>LGBM</th>
+          <th>Resultados</th>
+          <th>Stdout</th>
+          <th>Stderr</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in runs %}
+        <tr>
+          <td class="mono">{{ r.timestamp_local or r.timestamp }}</td>
+          <td class="mono">{{ r.trainer }}</td>
+          <td class="mono">{{ r.returncode }}</td>
+          <td class="mono">{{ r.params or '' }}</td>
+          <td class="mono">{{ r.best_model or '' }}</td>
+          <td class="mono">{{ r.best_score or '' }}</td>
+          <td class="mono">{% if r.pos and r.total %}{{ r.pos }}/{{ r.total }} ({{ r.pos_pct }}%){% endif %}</td>
+          <td class="mono">{{ r.lr_score or '' }}{% if r.lr_thr %} (thr={{ r.lr_thr }}){% endif %}</td>
+          <td class="mono">{{ r.xgb_score or '' }}{% if r.xgb_thr %} (thr={{ r.xgb_thr }}){% endif %}</td>
+          <td class="mono">{{ r.lgbm_score or '' }}{% if r.lgbm_thr %} (thr={{ r.lgbm_thr }}){% endif %}</td>
+          <td class="mono">{% if r.results_csv %}<a href="/{{ r.results_csv }}" target="_blank">CSV</a>{% endif %}</td>
+          <td><a href="/{{ r.stdout }}" target="_blank">log</a></td>
+          <td><a href="/{{ r.stderr }}" target="_blank">err</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p>No hay ejecuciones registradas.</p>
+    {% endif %}
+  </section>
+
+</body>
+<script>
+  const select = document.querySelector('select[name="trainer"]');
+  const boxes = document.querySelectorAll('#trainer-fields .box');
+  const reqStars = document.querySelectorAll('.req[data-trainers]');
+  const inputSymbols = document.querySelector('input[name="symbols"]');
+  const inputBase = document.querySelector('input[name="base"]');
+  const inputTarget = document.querySelector('input[name="target"]');
+  const inputPairsSymbols = document.querySelector('input[name="pairs_symbols"]');
+  const prefillSelect = document.getElementById('prefill-run');
+  function updateBoxes(){
+    const val = select.value;
+    boxes.forEach(b => { b.style.display = (b.dataset.trainer === val) ? '' : 'none'; });
+    const needSymbols = ['latin_training','latin_pattern_training','walkforward_training'].includes(val);
+    const needBaseTarget = (val === 'cross_pattern_training');
+    const needPairsSymbols = (val === 'pairs_training');
+    if (inputSymbols) inputSymbols.required = needSymbols;
+    if (inputBase) inputBase.required = needBaseTarget;
+    if (inputTarget) inputTarget.required = needBaseTarget;
+    if (inputPairsSymbols) inputPairsSymbols.required = needPairsSymbols;
+    reqStars.forEach(st => {
+      const list = st.dataset.trainers.split(',');
+      st.style.display = list.includes(val) ? 'inline' : 'none';
+    });
+  }
+  function parseCmd(cmd){
+    const parts = cmd ? cmd.split(/\s+/) : [];
+    const flags = {};
+    for (let i=0;i<parts.length;i++){
+      const p = parts[i];
+      if (p.startsWith('--')){
+        const key = p.replace(/^--/, '');
+        const next = parts[i+1];
+        if (!next || next.startsWith('--')){
+          flags[key] = true;
+        } else {
+          flags[key] = next;
+          i++;
+        }
+      }
+    }
+    return flags;
+  }
+  function setIf(name, val){ const el = document.querySelector(`[name="${name}"]`); if (el && val!==undefined && val!=='') el.value = val; }
+  function setCheck(name, present){ const el = document.querySelector(`[name="${name}"]`); if (el) el.checked = !!present; }
+  function prefillFromRun(){
+    const opt = prefillSelect && prefillSelect.options[prefillSelect.selectedIndex];
+    if (!opt || !opt.value) return;
+    const trainer = opt.dataset.trainer;
+    const cmd = opt.dataset.cmd || '';
+    const flags = parseCmd(cmd);
+    // Trainer select
+    select.value = trainer; updateBoxes();
+    // Comunes
+    setIf('timeframe', opt.dataset.timeframe || flags['timeframe']);
+    const fmtSel = document.querySelector('select[name="format"]'); if (fmtSel){ fmtSel.value = opt.dataset.format || flags['format'] || 'parquet'; }
+    setIf('tz', opt.dataset.tz || flags['tz']);
+    setIf('start_date', opt.dataset.start_date || flags['start_date']);
+    setIf('end_date', opt.dataset.end_date || flags['end_date']);
+    // Por entrenador
+    if (trainer==='latin_training' || trainer==='latin_pattern_training' || trainer==='walkforward_training'){
+      setIf('symbols', opt.dataset.symbols || flags['symbols']);
+    }
+    if (trainer==='cross_pattern_training'){
+      setIf('base', opt.dataset.base || flags['base']);
+      setIf('target', opt.dataset.target || flags['target']);
+    }
+    if (trainer==='pairs_training'){
+      setIf('pairs_symbols', flags['symbols'] || '');
+      setIf('pairs_window', flags['window']);
+      setIf('pairs_horizon', flags['horizon']);
+    }
+    // Específicos
+    if (trainer==='latin_training'){
+      setIf('latin_horizon', flags['horizon']);
+      setIf('latin_atr_target', flags['atr_mult_target']);
+      setIf('latin_atr_stop', flags['atr_mult_stop']);
+      setIf('latin_morning_start', flags['morning_start']);
+      setIf('latin_morning_end', flags['morning_end']);
+      setIf('latin_session_start', flags['session_start']);
+      setIf('latin_session_end', flags['session_end']);
+      setIf('latin_models', flags['models']);
+      const mSel = document.querySelector('select[name="latin_metric"]'); if (mSel){ mSel.value = flags['metric'] || 'accuracy'; }
+    }
+    if (trainer==='latin_pattern_training'){
+      setIf('lp_morning_start', flags['morning_start']);
+      setIf('lp_morning_end', flags['morning_end']);
+      setIf('lp_midday_start', flags['midday_start']);
+      setIf('lp_midday_end', flags['midday_end']);
+      setIf('lp_afternoon_start', flags['afternoon_start']);
+      setIf('lp_afternoon_end', flags['afternoon_end']);
+      setIf('lp_models', flags['models']);
+      const rSel = document.querySelector('select[name="lp_metric"]'); if (rSel){ rSel.value = flags['metric'] || rSel.value; }
+      const tSel = document.querySelector('select[name="lp_threshold_mode"]'); if (tSel){ tSel.value = flags['threshold_mode'] || tSel.value; }
+      setCheck('lp_split_by_day', 'split_by_day' in flags);
+    }
+    if (trainer==='cross_pattern_training'){
+      setIf('cp_morning_start', flags['morning_start']);
+      setIf('cp_morning_end', flags['morning_end']);
+      setIf('cp_afternoon_start', flags['afternoon_start']);
+      setIf('cp_afternoon_end', flags['afternoon_end']);
+      setIf('cp_models', flags['models']);
+      const cSel = document.querySelector('select[name="cp_metric"]'); if (cSel){ cSel.value = flags['metric'] || cSel.value; }
+      const cmSel = document.querySelector('select[name="cp_threshold_mode"]'); if (cmSel){ cmSel.value = flags['threshold_mode'] || cmSel.value; }
+      setCheck('cp_split_by_day', 'split_by_day' in flags);
+    }
+    if (trainer==='walkforward_training'){
+      setIf('wf_models', flags['models']);
+      setIf('wf_folds', flags['folds']);
+      setIf('wf_horizon', flags['horizon']);
+      setIf('wf_log_results', flags['log_results']);
+    }
+  }
+  select.addEventListener('change', updateBoxes);
+  updateBoxes();
+  </script>
+</html>

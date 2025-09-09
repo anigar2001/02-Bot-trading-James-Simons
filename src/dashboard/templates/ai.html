@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Portfolio Check</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <style> body { padding: 20px; } .mono{font-family:monospace;font-size:0.85rem;} </style>
+</head>
+<body>
+  <section class="section">
+    <h1 class="title">AI Portfolio Check</h1>
+    <p class="subtitle">Backtest simple de cartera con seÃ±ales IA</p>
+    <a class="button is-small" href="/">â† Volver al dashboard</a>
+  </section>
+  <div class="notification is-info is-light">
+    <strong>Â¿QuÃ© hace?</strong> Simula una cartera spot (solo compras/ventas) desde un capital inicial, aplicando una seÃ±al probabilÃ­stica de â€œsube/bajaâ€ para decidir BUY/SELL y registrando el valor en USDC en el tiempo.
+    <br>
+    <strong>Necesita:</strong> sÃ­mbolos (p. ej. BTCUSDC,ETHUSDC,LTCUSDC), timeframe (15m/1h), rango de fechas y, opcionalmente, un modelo .pkl si quieres usar otro clasificador. Genera un CSV y un PNG con la curva de la cartera.
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="section">
+      {% for category, message in messages %}
+        <div class="notification is-{{ 'danger' if category=='danger' else 'info' }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% endwith %}
+
+  <section class="section">
+    <form method="post">
+      <div class="columns">
+        <div class="column">
+          <div class="field">
+            <label class="label">Modo</label>
+            <div class="select is-fullwidth">
+              <select name="ai_mode" id="ai_mode">
+                <option value="single">Single Asset</option>
+                <option value="pairs">Pairs (convergencia)</option>
+              </select>
+            </div>
+            <div class="content is-small"><p><strong>Â¿QuÃ© es |z|?</strong> Es el valor absoluto del z-score del <em>log-ratio</em> (LTC/BTC) calculado con una ventana <strong>window</strong>: (log_ratio âˆ’ media_rolling) / desv_rolling. Indica cuÃ¡ntas desviaciones estÃ¡ el ratio de su media reciente.</p></div>
+          </div>
+          <div class="field"><label class="label">SÃ­mbolos</label><input class="input" type="text" name="symbols" value="BTCUSDC,ETHUSDC,LTCUSDC"></div>
+          <div class="field is-horizontal"><div class="field-body">
+            <div class="field"><label class="label">Timeframe</label><input class="input" type="text" name="timeframe" value="15m"></div>
+            <div class="field"><label class="label">Formato</label>
+              <div class="select is-fullwidth"><select name="format"><option value="parquet" selected>parquet</option><option value="csv">csv</option></select></div>
+            </div>
+          </div></div>
+          <div class="field is-horizontal"><div class="field-body">
+            <div class="field"><label class="label">Desde</label><input class="input" type="date" name="start_date"></div>
+            <div class="field"><label class="label">Hasta</label><input class="input" type="date" name="end_date"></div>
+          </div></div>
+          <div class="field is-horizontal"><div class="field-body">
+            <div class="field"><label class="label">Capital inicial (USDC)</label><input class="input" type="number" step="1" name="initial_capital" value="300"></div>
+            <div class="field"><label class="label">Buy thresh</label><input class="input" type="number" step="0.01" name="buy_thresh" value="0.60"></div>
+            <div class="field"><label class="label">Sell thresh</label><input class="input" type="number" step="0.01" name="sell_thresh" value="0.40"></div>
+          </div></div>
+          <div class="field"><label class="label">Modelo (.pkl)</label><input class="input" type="text" name="model_path" placeholder="src/models/best_model.pkl"></div>
+
+          <div id="pairs-box" style="display:none;" class="box">
+            <p class="subtitle is-6">Pairs Portfolio Check</p>
+            <div class="notification is-info is-light">
+              Simula una operaciÃ³n de convergencia (long/short) cuando |z| supera z_entry y la probabilidad del modelo â‰¥ prob_thresh; cierra cuando |z| < z_exit.
+            </div>
+            <div class="field"><label class="label">SÃ­mbolos A,B</label><input class="input" type="text" name="pairs_symbols" placeholder="BTCUSDC,LTCUSDC"></div>
+            <div class="field is-horizontal"><div class="field-body">
+              <div class="field"><label class="label">Umbral de entrada (|z|)</label><input class="input" type="number" step="0.1" name="z_entry" value="2.0"><p class="help">Abre cuando |z| supera este valor.</p></div>
+              <div class="field"><label class="label">Umbral de salida (|z|)</label><input class="input" type="number" step="0.1" name="z_exit" value="0.5"><p class="help">Cierra cuando |z| cae por debajo.</p></div>
+              <div class="field"><label class="label">Prob. mÃ­nima de convergencia</label><input class="input" type="number" step="0.01" name="prob_thresh" value="0.6"><p class="help">Probabilidad del modelo para permitir la entrada (0â€“1).</p></div>
+            </div></div>
+            <div class="field">
+              <label class="label">Modo Spot (solo largos)</label>
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select name="spot_mode">
+                    <option value="false" selected>false (market-neutral long/short)</option>
+                    <option value="true">true (spot long-only en sÃ­mbolo elegido)</option>
+                  </select>
+                </div>
+              </div>
+              <p class="help">Activa simulaciÃ³n spot long-only (ej. sÃ³lo compras/ventas en LTCUSDC). Si es false, usa pares market-neutral (long/short).</p>
+            </div>
+            <div class="field is-horizontal"><div class="field-body">
+              <div class="field"><label class="label">window (velas)</label><input class="input" type="number" name="pairs_window" value="50" min="5"><p class="help">Ventana para media y desviaciÃ³n del log-ratio (z-score).</p></div>
+              <div class="field"><label class="label">max_hold (velas)</label><input class="input" type="number" name="pairs_max_hold" value="240" min="1"></div>
+            </div></div>
+            <div class="field"><label class="label">Modelo de pares (.pkl)</label><input class="input" type="text" name="pairs_model_path" placeholder="src/models/pairs_model.pkl"></div>
+          </div>
+          <div class="field"><button class="button is-primary" type="submit">Lanzar</button></div>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <section class="section">
+    <h2 class="title is-5">Historial</h2>
+    {% if runs and runs|length>0 %}
+    <table class="table is-fullwidth is-striped is-hoverable">
+      <thead><tr><th>Fecha</th><th>Símbolos</th><th>tf</th><th>Rango</th><th>RC</th><th>Ops</th><th>Fees</th><th>PNG</th><th>CSV</th><th>Stdout</th><th>Stderr</th></tr></thead>
+      <tbody>
+        {% for r in runs %}
+        <tr>
+          <td class="mono">{{ r.timestamp_local or r.timestamp }}</td>
+          <td class="mono">{{ r.symbols }}</td>
+          <td class="mono">{{ r.timeframe }}</td>
+          <td class="mono">{{ (r.start_date or '') ~ ' .. ' ~ (r.end_date or '') }}</td>
+          <td class="mono">{{ r.rc }}</td>
+          <td class="mono">{% if r.ops_long %}L={{ r.ops_long }} / S={{ r.ops_short }}{% endif %}</td>
+          <td class="mono">{% if r.fees_usdc %}{{ r.fees_usdc }} USDC{% endif %}</td>
+          <td class="mono">{% if r.png %}<a href="/{{ r.png }}" target="_blank">png</a>{% endif %}</td>
+          <td class="mono">{% if r.csv %}<a href="/{{ r.csv }}" target="_blank">csv</a>{% endif %}</td>
+          <td><a href="/{{ r.stdout }}" target="_blank">log</a></td>
+          <td><a href="/{{ r.stderr }}" target="_blank">err</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p>No hay ejecuciones registradas.</p>
+    {% endif %}
+  </section>
+
+<script>
+  const modeSel = document.getElementById('ai_mode');
+  const pairsBox = document.getElementById('pairs-box');
+  function togglePairs(){ pairsBox.style.display = (modeSel.value==='pairs') ? '' : 'none'; }
+  modeSel.addEventListener('change', togglePairs); togglePairs();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+usage: pairs_training.py [-h] [--symbols SYMBOLS] [--timeframe TIMEFRAME]
+                         [--format {csv,parquet}] [--window WINDOW]
+                         [--horizon HORIZON] [--out OUT]
+                         [--log_results LOG_RESULTS]
+pairs_training.py: error: unrecognized arguments: --start_date 2024-01-01 --end_date 2025-09-01

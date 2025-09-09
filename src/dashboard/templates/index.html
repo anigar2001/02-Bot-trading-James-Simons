@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crypto Bot Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <style>
+    body { padding: 20px; }
+    .mono { font-family: monospace; font-size: 0.9rem; }
+  </style>
+  </head>
+  <body>
+    <section class="section">
+      <h1 class="title">Crypto Bot Dashboard</h1>
+      <a class="button is-link is-light" href="/train">Zona de Entrenamiento</a>
+      <a class="button is-info is-light" href="/ai" style="margin-left:8px;">AI Portfolio Check</a>
+      <a class="button is-primary is-light" href="/grid" style="margin-left:8px;">Estrategias Grid</a>
+      <p class="subtitle">Estado de cuenta (Testnet) y últimas operaciones</p>
+    </section>
+    <section class="section">
+      <h2 class="title is-4">Balance (BTC, USDC, LTC)</h2>
+      {% if balance_total_usdc is not none %}
+        <p><strong>Total en USDC:</strong> <span class="mono">{{ '%.2f'|format(balance_total_usdc) }}</span></p>
+      {% endif %}
+      {% if balance and balance|length > 0 %}
+      <table class="table is-fullwidth is-striped is-hoverable">
+        <thead>
+          <tr>
+            <th>Activo</th>
+            <th>Libre</th>
+            <th>Total</th>
+              <th>Valor USDC</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for asset, vals in balance.items() %}
+          <tr>
+            <td>{{ asset }}</td>
+            <td class="mono">{{ '%.8f'|format(vals.free) if vals.free is number else vals.free }}</td>
+            <td class="mono">{{ '%.8f'|format(vals.total) if vals.total is number else vals.total }}</td>
+            <td class="mono">{{ '%.2f'|format(vals.value_usdc) if vals.value_usdc is number else vals.value_usdc }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <p>No hay datos de balance disponibles.</p>
+      {% endif %}
+    </section>
+    <section class="section">
+      <h2 class="title is-4">Últimas operaciones</h2>
+      {% if trades and trades|length > 0 %}
+        <table class="table is-fullwidth is-striped is-hoverable">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Estrategia</th>
+              <th>Símbolo(s)</th>
+              <th>Lado(s)</th>
+              <th>Cant.</th>
+              <th>Acción</th>
+              <th>Razón</th>
+              <th>PnL</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in trades %}
+            <tr>
+              <td class="mono">{{ r.ts }}</td>
+              <td>{{ r.strategy }}</td>
+              <td class="mono">{{ r.symbols }}</td>
+              <td class="mono">{{ r.sides }}</td>
+              <td class="mono">{{ r.amounts }}</td>
+              <td>{{ r.action }}</td>
+              <td>{{ r.reason }}</td>
+              <td class="mono">{{ r.pnl if r.pnl is not none else '' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>No hay operaciones registradas aún.</p>
+      {% endif %}
+    </section>
+    <section class="section">
+      <h2 class="title is-4">Posiciones (snapshot)</h2>
+      {% if positions and positions|length > 0 %}
+        <table class="table is-fullwidth is-striped is-hoverable">
+          <thead>
+            <tr>
+              <th>Símbolo</th>
+              <th>Estrategia</th>
+              <th>Lado</th>
+              <th>Cant.</th>
+              <th>Entrada</th>
+              <th>Stop</th>
+              <th>Take</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in positions %}
+            <tr>
+              <td class="mono">{{ p.symbol }}</td>
+              <td>{{ p.strategy }}</td>
+              <td>{{ p.side }}</td>
+              <td class="mono">{{ p.qty }}</td>
+              <td class="mono">{{ p.entry_price }}</td>
+              <td class="mono">{{ p.stop_loss if p.stop_loss is not none else '' }}</td>
+              <td class="mono">{{ p.take_profit if p.take_profit is not none else '' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>Sin snapshot disponible aún.</p>
+      {% endif %}
+    </section>
+    <section class="section">
+      <h2 class="title is-4">Régimen y Pesos (snapshot)</h2>
+      {% if allocator and allocator.regime %}
+        <div class="columns">
+          <div class="column">
+            <h3 class="title is-6">Régimen</h3>
+            <table class="table is-fullwidth is-striped is-hoverable">
+              <tbody>
+                <tr><th>Trend (ADX)</th><td class="mono">{{ allocator.regime.trend_strength }}</td></tr>
+                <tr><th>Volatilidad</th><td class="mono">{{ allocator.regime.vol }}</td></tr>
+                <tr><th>Zona S/R</th>
+                  <td>
+                    {% if allocator.regime.sr_state == 'support' %}
+                      Cerca de soporte
+                    {% elif allocator.regime.sr_state == 'resistance' %}
+                      Cerca de resistencia
+                    {% else %}
+                      Lejos de soportes/resistencias
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr><th>Pairs z</th><td class="mono">{{ allocator.regime.pairs_z if allocator.regime.pairs_z is not none else '' }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="column">
+            <h3 class="title is-6">Pesos</h3>
+            {% if allocator.weights %}
+            <table class="table is-fullwidth is-striped is-hoverable">
+              <tbody>
+                <tr><th>Mean Reversion</th><td class="mono">{{ allocator.weights.mean }}</td></tr>
+                <tr><th>Momentum</th><td class="mono">{{ allocator.weights.momentum }}</td></tr>
+                <tr><th>Pares</th><td class="mono">{{ allocator.weights.pairs }}</td></tr>
+                <tr><th>Suma</th><td class="mono">{{ allocator.weights.sum }}</td></tr>
+              </tbody>
+            </table>
+            {% endif %}
+          </div>
+        </div>
+      {% else %}
+        <p>Sin snapshot disponible aún.</p>
+      {% endif %}
+    </section>
+  </body>
+  </html>

@@ -1,0 +1,3 @@
+[pairs-portfolio] ops long=10058 short=10058 fees_usdc=1513.4256
+[pairs-portfolio] saved CSV: src/data/training_logs/pairs_equity_BTCUSDC_LTCUSDC_5m_2.0_0.4_0.7.csv
+[pairs-portfolio] saved PNG: src/data/training_logs/pairs_equity_BTCUSDC_LTCUSDC_5m_2.0_0.4_0.7.png

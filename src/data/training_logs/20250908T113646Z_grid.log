@@ -1,0 +1,17 @@
+[bkt] LoadDispatch BTC/USDC PnL=0.000 MaxDD=0.000 buys=0 sells=0
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/app/src/backtests/backtest_strategies.py", line 181, in backtest_load_dispatch_swing
+    df_out.to_csv(csv_path)
+  File "/usr/local/lib/python3.10/site-packages/pandas/util/_decorators.py", line 333, in wrapper
+    return func(*args, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/pandas/core/generic.py", line 3986, in to_csv
+    return DataFrameRenderer(formatter).to_csv(
+  File "/usr/local/lib/python3.10/site-packages/pandas/io/formats/format.py", line 1014, in to_csv
+    csv_formatter.save()
+  File "/usr/local/lib/python3.10/site-packages/pandas/io/formats/csvs.py", line 251, in save
+    with get_handle(
+  File "/usr/local/lib/python3.10/site-packages/pandas/io/common.py", line 873, in get_handle
+    handle = open(
+PermissionError: [Errno 13] Permission denied: 'src/data/training_logs/equity_ld_BTCUSDC_1h_1d_62d.csv'

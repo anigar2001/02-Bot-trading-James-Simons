@@ -1,0 +1,11 @@
+              precision    recall  f1-score   support
+
+           0      0.751     0.753     0.752     17578
+           1      0.752     0.750     0.751     17554
+
+    accuracy                          0.751     35132
+   macro avg      0.751     0.751     0.751     35132
+weighted avg      0.751     0.751     0.751     35132
+
+[pairs] model=lr score=0.7514 metric=accuracy f1=0.7509
+Modelo de pares guardado en src/models/pairs_model.pkl

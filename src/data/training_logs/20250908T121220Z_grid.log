@@ -1,0 +1,4 @@
+[bkt] LoadDispatch BTC/USDC PnL=0.000 MaxDD=0.000 buys=0 sells=0
+[bkt] saved CSV: src/data/training_logs/equity_ld_BTCUSDC_15m_1d_62d.csv
+[bkt] saved PNG: src/data/training_logs/equity_ld_BTCUSDC_15m_1d_62d.png
+

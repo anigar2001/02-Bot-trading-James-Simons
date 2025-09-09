@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/local/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/app/src/backtests/ai_portfolio_check.py", line 241, in <module>
+    main()
+  File "/app/src/backtests/ai_portfolio_check.py", line 162, in main
+    bundle = load_bundle(mdl_path)
+  File "/app/src/backtests/ai_portfolio_check.py", line 77, in load_bundle
+    return BundleModel(model=b['model'], features=b['features'])
+KeyError: 'model'

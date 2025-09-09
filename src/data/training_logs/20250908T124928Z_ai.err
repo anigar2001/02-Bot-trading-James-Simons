@@ -1,0 +1,26 @@
+/usr/local/lib/python3.10/site-packages/sklearn/utils/validation.py:2742: UserWarning: X has feature names, but LogisticRegression was fitted without feature names
+  warnings.warn(
+/usr/local/lib/python3.10/site-packages/sklearn/utils/validation.py:2742: UserWarning: X has feature names, but LogisticRegression was fitted without feature names
+  warnings.warn(
+/usr/local/lib/python3.10/site-packages/sklearn/utils/validation.py:2742: UserWarning: X has feature names, but LogisticRegression was fitted without feature names
+  warnings.warn(
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/local/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/app/src/backtests/pairs_portfolio_check.py", line 188, in <module>
+    main()
+  File "/app/src/backtests/pairs_portfolio_check.py", line 176, in main
+    df_out = pd.DataFrame({'value_usdc': equity, 'z': z_vals[:len(equity)], 'prob': prob_vals[:len(equity)], 'action': action[:len(equity)]}, index=idx)
+  File "/usr/local/lib/python3.10/site-packages/pandas/core/frame.py", line 778, in __init__
+    mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy, typ=manager)
+  File "/usr/local/lib/python3.10/site-packages/pandas/core/internals/construction.py", line 503, in dict_to_mgr
+    return arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ, consolidate=copy)
+  File "/usr/local/lib/python3.10/site-packages/pandas/core/internals/construction.py", line 119, in arrays_to_mgr
+    arrays, refs = _homogenize(arrays, index, dtype)
+  File "/usr/local/lib/python3.10/site-packages/pandas/core/internals/construction.py", line 630, in _homogenize
+    com.require_length_match(val, index)
+  File "/usr/local/lib/python3.10/site-packages/pandas/core/common.py", line 573, in require_length_match
+    raise ValueError(
+ValueError: Length of values (10317) does not match length of index (18094)

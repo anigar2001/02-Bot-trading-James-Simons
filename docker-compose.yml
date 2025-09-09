@@ -1,0 +1,69 @@
+
+services:
+  bot:
+    build: .
+    image: trading-bot:latest
+    container_name: trading-bot
+    restart: always
+    env_file: .env
+    environment:
+      - API_BASE=${API_BASE:-https://testnet.binance.vision}
+      - USE_ML=${USE_ML:-0}
+      - ML_BUY_THRESH=${ML_BUY_THRESH:-0.55}
+      - ML_SELL_THRESH=${ML_SELL_THRESH:-0.45}
+      - INITIAL_CAPITAL=${INITIAL_CAPITAL:-300}
+      - RISK_PER_TRADE=${RISK_PER_TRADE:-0.02}
+      - MAX_OPEN_POSITIONS=${MAX_OPEN_POSITIONS:-3}
+      - ALLOC_ADX_TREND=${ALLOC_ADX_TREND:-25}
+      - ALLOC_SR_WINDOW=${ALLOC_SR_WINDOW:-50}
+      - ALLOC_SR_PROX_PCT=${ALLOC_SR_PROX_PCT:-0.005}
+      - ALLOC_PAIRS_Z_ENTRY=${ALLOC_PAIRS_Z_ENTRY:-2.0}
+      - PYTHONPATH=/app
+    volumes:
+      - ./src/data:/app/src/data
+      - ./src/models:/app/src/models
+    command: ["python","-m","src.main","--mode","live","--strategy","all","--symbols","BTC/USDC,ETH/USDC,LTC/USDC","--timeframe","1m","--interval","30","--dry"]
+
+  dashboard:
+    image: trading-bot:latest
+    container_name: trading-bot-dashboard
+    restart: always
+    env_file: .env
+    depends_on:
+      - bot
+    volumes:
+      - ./src/data:/app/src/data
+      - ./src/models:/app/src/models
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+    command: ["python","-m","src.dashboard.app"]
+
+  fetcher:
+    image: trading-bot:latest
+    env_file: .env
+    environment:
+      - PYTHONPATH=/app
+    working_dir: /app
+    volumes:
+      - ./src/data:/app/src/data
+      - ./src/models:/app/src/models
+    # El comando se define al ejecutar con `docker compose run`
+
+  trainer:
+    image: trading-bot:latest
+    container_name: trading-bot-trainer
+    restart: always
+    env_file: .env
+    environment:
+      - PYTHONPATH=/app
+      - TRAINER_SYMBOLS=${TRAINER_SYMBOLS:-BTCUSDC,ETHUSDC,LTCUSDC}
+      - TRAINER_TF=${TRAINER_TF:-1h}
+      - TRAINER_FORMAT=${TRAINER_FORMAT:-parquet}
+      - TRAINER_INTERVAL_SECONDS=${TRAINER_INTERVAL_SECONDS:-86400}
+    working_dir: /app
+    volumes:
+      - ./src/data:/app/src/data
+      - ./src/models:/app/src/models
+    command: ["sh","scripts/retrain_loop.sh"]

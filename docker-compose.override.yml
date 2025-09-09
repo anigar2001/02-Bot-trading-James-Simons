@@ -1,0 +1,14 @@
+services:
+  bot:
+    volumes:
+    
+    - ./:/app
+  fetcher:
+    volumes:
+    - ./:/app
+  dashboard:
+    volumes:
+    - ./:/app
+  trainer:
+    volumes:
+    - ./:/app

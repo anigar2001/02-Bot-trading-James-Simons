@@ -1,0 +1,38 @@
+[cross-pattern] Resumen de ocurrencias:
+- Base=BTCUSDC Target=LTCUSDC | tz=Europe/Madrid
+- Ventanas: mañana 08:00–9:00, tarde 9:00–10:00
+- Rango de estudio: 2020-01-01 → 2025-09-01 | Timeframe: 5m
+- Días locales con patrón (BTC mañana↑ & LTC no↑): 249
+- Ocurrencias: 249
+- Salidas positivas (tarde LTC↑): 116 de 249 (46.6%)
+[cross-pattern] LR report:
+              precision    recall  f1-score   support
+
+           0      0.750     0.130     0.222        23
+           1      0.565     0.963     0.712        27
+
+    accuracy                          0.580        50
+   macro avg      0.658     0.547     0.467        50
+weighted avg      0.650     0.580     0.487        50
+
+[cross-pattern] XGB report:
+              precision    recall  f1-score   support
+
+           0      0.586     0.739     0.654        23
+           1      0.714     0.556     0.625        27
+
+    accuracy                          0.640        50
+   macro avg      0.650     0.647     0.639        50
+weighted avg      0.655     0.640     0.638        50
+
+[cross-pattern] LGBM report:
+              precision    recall  f1-score   support
+
+           0      0.552     0.696     0.615        23
+           1      0.667     0.519     0.583        27
+
+    accuracy                          0.600        50
+   macro avg      0.609     0.607     0.599        50
+weighted avg      0.614     0.600     0.598        50
+
+[cross-pattern] best=xgb score=0.647 -> src/models/cross_pattern_xgb.pkl

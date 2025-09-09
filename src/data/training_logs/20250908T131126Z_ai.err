@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/local/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/app/src/backtests/pairs_portfolio_check.py", line 207, in <module>
+    main()
+  File "/app/src/backtests/pairs_portfolio_check.py", line 97, in main
+    sym_a, sym_b = [s.strip().upper() for s in args.symbols.split(',')[:2]]
+ValueError: not enough values to unpack (expected 2, got 1)
